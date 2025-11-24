@@ -80,7 +80,7 @@ class KMPVisualizer:
     def visualize_kmp(self, text, pattern):
         # Compute actual algorithm time (no animation)
         start_algo = perf_counter()
-        index, comparisons = self.kmp_algorithm(text, pattern)
+        matches, comparisons = self.kmp_algorithm(text, pattern)
         end_algo = perf_counter()
         algo_time = (end_algo - start_algo) * 1000
 
@@ -106,62 +106,86 @@ class KMPVisualizer:
 
         i = j = 0
         delay = 500
-        comparisons = 0
+        comparisons_visual = 0
+        matches_found = []
 
         def step():
-            nonlocal i, j, comparisons
+            nonlocal i, j, comparisons_visual, matches_found
+
             if i < len(text):
-                comparisons += 1
+                comparisons_visual += 1
+
+                # Reset pattern colors
                 for lbl in pattern_labels:
                     self.canvas.itemconfig(lbl, fill="gray")
 
-                self.canvas.itemconfig(text_labels[i], fill="#FFA500")  # orange = current
+                # Highlight current char in text
+                self.canvas.itemconfig(text_labels[i], fill="#FFA500")  # orange
 
+                # If match
                 if text[i] == pattern[j]:
-                    self.canvas.itemconfig(text_labels[i], fill="#00FF00")  # green = match
+                    self.canvas.itemconfig(text_labels[i], fill="#00FF00")
                     self.canvas.itemconfig(pattern_labels[j], fill="#00FF00")
                     i += 1
                     j += 1
                 else:
-                    self.canvas.itemconfig(pattern_labels[j], fill="#FF4444")  # red = mismatch
+                    self.canvas.itemconfig(pattern_labels[j], fill="#FF4444")
                     if j != 0:
                         j = lps[j - 1]
                     else:
                         i += 1
 
+                # Full pattern match
                 if j == len(pattern):
-                    for lbl in pattern_labels:
-                        self.canvas.itemconfig(lbl, fill="#B366FF")  # purple = found
+                    start_index = i - j
+                    matches_found.append(start_index)
+
+                    # Highlight match in purple
+                    for k in range(len(pattern)):
+                        self.canvas.itemconfig(text_labels[start_index + k], fill="#B366FF")
+                        self.canvas.itemconfig(pattern_labels[k], fill="#B366FF")
+
+                    j = lps[j - 1]  # Continue searching
+
+                self.root.after(delay, step)
+
+            else:
+                if matches_found:
                     self.result_label.config(
-                        text=f"✅ Pattern found at index: {i - j}\n⏱ Actual algorithm time: {algo_time:.3f} ms\n🔁 Comparisons made: {comparisons}",
+                        text=f"✅ Pattern found at indices: {matches_found}\n⏱ Time: {algo_time:.3f} ms\n🔁 Comparisons: {comparisons}",
                         fg="#B366FF"
                     )
-                    return
-                self.root.after(delay, step)
-            else:
-                self.result_label.config(
-                    text=f"❌ Pattern not found\n⏱ Actual algorithm time: {algo_time:.3f} ms\n🔁 Comparisons made: {comparisons}",
-                    fg="#FF4444"
-                )
+                else:
+                    self.result_label.config(
+                        text=f"❌ Pattern not found\n⏱ Time: {algo_time:.3f} ms\n🔁 Comparisons: {comparisons}",
+                        fg="#FF4444"
+                    )
 
         self.root.after(delay, step)
 
     def kmp_algorithm(self, text, pattern):
         lps = self.compute_lps(pattern)
         i = j = comparisons = 0
+        matches = []
+
         while i < len(text):
             comparisons += 1
+
             if text[i] == pattern[j]:
                 i += 1
                 j += 1
+
             if j == len(pattern):
-                return i - j, comparisons
+                matches.append(i - j)
+                j = lps[j - 1]  # continue searching
+
             elif i < len(text) and text[i] != pattern[j]:
                 if j != 0:
                     j = lps[j - 1]
                 else:
                     i += 1
-        return -1, comparisons
+
+        return matches, comparisons
 
 
 if __name__ == "__main__":

@@ -49,13 +49,13 @@ class GraphColoringVisualizer:
         # Legend
         legend_frame = tk.Frame(root, bg="#1e1e1e")
         legend_frame.pack(pady=10)
-        legends = [
-            ("🟠", "Currently processing vertex", "#FFA500"),
-            ("🟢", "Colored successfully", "#00FF00"),
-            ("🔴", "Conflict (no available color)", "#FF4444")
-        ]
-        for icon, text, color in legends:
-            tk.Label(legend_frame, text=f"{icon} {text}", fg=color, bg="#1e1e1e", font=("Helvetica", 11)).pack(side="left", padx=15)
+        # legends = [
+        #     ("🟠", "Currently processing vertex", "#FFA500"),
+        #     ("🟢", "Colored successfully", "#00FF00"),
+        #     ("🔴", "Conflict (no available color)", "#FF4444")
+        # ]
+        # for icon, text, color in legends:
+        #     tk.Label(legend_frame, text=f"{icon} {text}", fg=color, bg="#1e1e1e", font=("Helvetica", 11)).pack(side="left", padx=15)
 
     def start_visualization(self):
         self.canvas.delete("all")
@@ -97,6 +97,7 @@ class GraphColoringVisualizer:
             coloring, steps = self.greedy_coloring(n, edges, max_colors)
         end_algo = perf_counter()
         algo_time = (end_algo - start_algo) * 1000.0
+        print(f"Algorithm time: {algo_time:.3f} ms, Steps: {steps}")
 
         # Layout positions for nodes
         radius = 180
@@ -135,16 +136,25 @@ class GraphColoringVisualizer:
                 conflict_text = f" (conflicts: {total_conflicts})" if total_conflicts > 0 else ""
                 if conflict_text:
                     self.result_label.config(
-                        text=(f"⚠️ Could not color using {max_colors} colors:{conflict_text}\n"),
+                        text=(f"⚠️ Could not color using {max_colors} colors:{conflict_text}\n"
+                              f"⏱ Algorithm time: {algo_time:.3f} ms\n"),
                         fg="#FF0000"
                     )
                 else:
-                    self.result_label.config(
-                        text=(f"✅ Colored using {used_colors} out of {max_colors} colors\n"
-                              f"⏱ Algorithm time: {algo_time:.3f} ms\n"
-                              f"🔁 Steps: {steps}"),
-                        fg="#00FF00"
-                    )
+                    if algorithm == "backtracking":
+                        self.result_label.config(
+                            text=(f"✅ Successfully colored using {used_colors} out of {max_colors} colors\n"
+                                  f"⏱ Algorithm time: {algo_time:.3f} ms\n"
+                                  f"Chromatic Number: {used_colors}"),
+                            fg="#00FF00"
+                        )
+                    else:
+                        self.result_label.config(
+                            text=(f"✅ Colored using {used_colors} out of {max_colors} colors\n"
+                                f"⏱ Algorithm time: {algo_time:.3f} ms\n"
+                                f"Warning: Greedy coloring does not guarantee minimal colors."),
+                            fg="#00FF00"
+                        )
                 return
 
             circle, label = self.node_circles[index]
@@ -166,16 +176,16 @@ class GraphColoringVisualizer:
     #--------------------------------------------------------------
     # Backtracking algorithm
     def backtracking_coloring(self, n, edges, max_colors):
-        adjacency = {i: [] for i in range(n)}
+        adjacency_list = {i: [] for i in range(n)}
         for u, v in edges:
-            adjacency[u].append(v)
-            adjacency[v].append(u)
+            adjacency_list[u].append(v)
+            adjacency_list[v].append(u)
 
         result = [-1] * n
         steps = 0
 
         def is_safe(v, c):
-            return all(result[neighbor] != c for neighbor in adjacency[v])
+            return all(result[neighbor] != c for neighbor in adjacency_list[v])
 
         def solve(v):
             nonlocal steps
@@ -206,6 +216,7 @@ class GraphColoringVisualizer:
         for u in range(n):
             steps += 1
             used = [False] * max_colors
+            # Mark colors of adjacent vertices as used
             for v in adjacency[u]:
                 if result[v] != -1 and result[v] < max_colors:
                     used[result[v]] = True

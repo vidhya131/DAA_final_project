@@ -10,7 +10,6 @@ class Node:
         self.right = None
         self.height = 1
 
-
 # ---------------- AVL TREE LOGIC ----------------
 class AVLTree:
     def insert(self, root, key, canvas=None, draw_callback=None, speed=1.0, highlight_node=None):
@@ -60,7 +59,7 @@ class AVLTree:
             return self.leftRotate(root)
 
         if draw_callback:
-            draw_callback()
+            draw_callback(f"Inserting {key}", root)
             sleep(1.0 / speed)
         return root
 
@@ -89,12 +88,11 @@ class AVLTree:
     def getBalance(self, node):
         return 0 if not node else self.getHeight(node.left) - self.getHeight(node.right)
 
-
 # ---------------- VISUALIZATION ----------------
 class AVLVisualizer:
     def __init__(self, root):
         self.root = root
-        self.root.title("AVL Tree Visualization (Enhanced)")
+        self.root.title("AVL Tree Visualization")
         self.tree = AVLTree()
         self.root_node = None
         self.speed = tk.DoubleVar(value=1.0)
@@ -159,6 +157,13 @@ class AVLVisualizer:
 
     # Insert list of nodes
     def insert_list(self):
+        # Clear previous results
+        self.info_label.config(text="")
+        self.time_label.config(text="")
+        self.final_list_label.config(text="")
+        self.canvas.delete("all")
+        self.root_node = None
+
         raw_input = self.entry.get().strip()
         if not raw_input:
             messagebox.showerror("Error", "Please enter a list of numbers (e.g. 10,20,30,40).")
@@ -177,6 +182,7 @@ class AVLVisualizer:
             temp_tree = self.tree.insert(temp_tree, k)
         end_algo = perf_counter()
         actual_time_ms = (end_algo - start_algo) * 1000
+        print(f"Actual AVL Algorithm Time (no animation): {actual_time_ms:.3f} ms")
 
         # Now perform visualized insertions
         self.root_node = None
@@ -209,7 +215,6 @@ class AVLVisualizer:
             if node.right:
                 queue.append(node.right)
         return result
-
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
